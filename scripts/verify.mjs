@@ -27,6 +27,14 @@ const OFFLINE = process.argv.includes('--offline');
 
 let passed = 0;
 let failed = 0;
+/**
+ * Checks deliberately not run because `--offline` was passed.
+ *
+ * An *unexpected* skip must never be silent: the live section turns a network
+ * failure into a failed check instead, so the summary can never under-report
+ * while still exiting 0.
+ */
+let skipped = 0;
 const failures = [];
 
 function check(label, condition, detail = '') {
@@ -1415,7 +1423,8 @@ section('6. live Open-Meteo check');
 globalThis.fetch = nativeFetch;
 
 if (OFFLINE) {
-  console.log('  SKIP  --offline was passed');
+  console.log('  SKIP  --offline was passed: 7 live checks not run');
+  skipped += 7;
 } else {
   try {
     const controller = new AbortController();
@@ -1443,14 +1452,21 @@ if (OFFLINE) {
     check('an administrative suffix still resolves (南昌县 → 南昌)', /南昌/.test(suffixed.location), suffixed.location);
     console.log(`  INFO  南昌县 → ${suffixed.location} ${suffixed.weatherText} ${String(suffixed.temperature)}°C`);
   } catch (error) {
-    console.log(`  SKIP  Open-Meteo unreachable: ${error instanceof Error ? error.message : String(error)}`);
+    // Not a silent skip: an unreachable service means the live checks did not
+    // run, which is exactly the kind of gap a release gate must fail on.
+    check(
+      'live Open-Meteo reachable (pass --offline to skip this section on purpose)',
+      false,
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
 
 /* ------------------------------------------------------------- summary */
 
 console.log(`\n${'='.repeat(46)}`);
-console.log(`passed: ${String(passed)}   failed: ${String(failed)}`);
+console.log(`passed: ${String(passed)}   failed: ${String(failed)}${skipped > 0 ? `   skipped: ${String(skipped)}` : ''}`);
+if (skipped > 0) console.log(`skipped by --offline: ${String(skipped)} live checks were not run`);
 if (failed > 0) {
   console.log('failed checks:');
   for (const label of failures) console.log(`  - ${label}`);
