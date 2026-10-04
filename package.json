@@ -1,0 +1,103 @@
+{
+  "name": "dsh-glass-weather",
+  "version": "0.2.0",
+  "description": "DeepSeek Harness 顶栏玻璃天气胶囊 + get_weather 工具：23 种天气状态、按状态配色与粒子层、全免密钥数据源。",
+  "type": "module",
+  "license": "MIT",
+  "author": "w-j-y-wjy <2876676081@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w-j-y-wjy/dsh-glass-weather.git"
+  },
+  "homepage": "https://github.com/w-j-y-wjy/dsh-glass-weather#readme",
+  "bugs": {
+    "url": "https://github.com/w-j-y-wjy/dsh-glass-weather/issues"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "weather",
+    "weather-widget",
+    "glassmorphism",
+    "open-meteo"
+  ],
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src",
+    "scripts",
+    "docs",
+    "cordis.patch.yml",
+    "tsdown.config.ts",
+    "tsconfig.json",
+    "tsconfig.client.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\" && tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.client.json",
+    "verify": "node scripts/verify.mjs",
+    "verify:release": "node scripts/verify-release.mjs",
+    "release:check": "npm run typecheck && npm run build && npm run verify",
+    "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\""
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.4",
+    "@types/node": "^24.0.0",
+    "@types/react": "~18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.9.3"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

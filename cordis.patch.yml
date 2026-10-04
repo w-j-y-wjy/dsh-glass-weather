@@ -1,0 +1,12 @@
+# dsh-glass-weather bundle patch.
+#
+# A bundle patch only INSERTS this plugin's Loader entry. It deliberately does
+# not touch any other row: patches address entries by id and replace their
+# `config` wholesale, so a patch that mentions unrelated entries would clobber
+# them.
+#
+# The entry `id` is the settings namespace the browser half reads: keep it in
+# sync with WEATHER_ENTRY_ID (src/index.ts and src/client/weather-map.ts).
+- insert:
+    - id: weather
+      name: dsh-glass-weather

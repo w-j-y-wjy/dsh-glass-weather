@@ -1,0 +1,17 @@
+# dsh serves the built artifacts, so `lib/` is deliberately NOT ignored:
+# the package (and a git clone used with `link:`) must contain lib/index.js
+# and lib/client.js.
+node_modules/
+
+# npm pack output and the isolated release-test scratch directory
+*.tgz
+_release-test/
+
+# credentials: a token in .npmrc is a password — never commit it
+.npmrc
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+*.log
+*.tsbuildinfo
