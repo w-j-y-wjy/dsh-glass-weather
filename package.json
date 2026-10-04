@@ -4,7 +4,7 @@
   "description": "DeepSeek Harness 顶栏玻璃天气胶囊 + get_weather 工具：23 种天气状态、按状态配色与粒子层、全免密钥数据源。",
   "type": "module",
   "license": "MIT",
-  "author": "w-j-y-wjy <2876676081@qq.com>",
+  "author": "yjan <2876676081@qq.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/w-j-y-wjy/dsh-glass-weather.git"
