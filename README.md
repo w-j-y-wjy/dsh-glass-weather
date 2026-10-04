@@ -1,5 +1,8 @@
 # dsh-glass-weather
 
+[![npm](https://img.shields.io/npm/v/dsh-glass-weather)](https://www.npmjs.com/package/dsh-glass-weather)
+[![license](https://img.shields.io/npm/l/dsh-glass-weather)](LICENSE)
+
 DeepSeek Harness（DSH）原生 Cordis 插件：在会话顶栏放一颗 **30px 玻璃天气胶囊**，并注册 `get_weather` 工具。
 
 ![23 种天气状态总览](docs/states.jpg)
@@ -13,11 +16,14 @@ DeepSeek Harness（DSH）原生 Cordis 插件：在会话顶栏放一颗 **30px 
 
 ## 安装
 
+已发布到 npm：<https://www.npmjs.com/package/dsh-glass-weather>
+
 ```powershell
-dsh plugin --profile desktop add dsh-glass-weather
+dsh plugin --profile desktop add dsh-glass-weather     # 从 npm 装（推荐）
+scripts\mount-profile.cmd desktop                      # 或本地源码挂载（开发用）
 ```
 
-本地开发挂载：`scripts\mount-profile.cmd desktop`（改 Host 半需重启 dsh；只改浏览器半会自动热更）。
+改 Host 半需重启 dsh；只改浏览器半会自动热更。
 
 ## 使用
 
