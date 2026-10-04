@@ -2,12 +2,14 @@
 
 DeepSeek Harness（DSH）原生 Cordis 插件：在会话顶栏放一颗 **30px 玻璃天气胶囊**，并注册 `get_weather` 工具。
 
-![顶栏里的玻璃天气胶囊](docs/header.png)
+![23 种天气状态总览](docs/states.jpg)
 
 **23 种天气状态**，每种自带玻璃配色、SVG 图形与 canvas 粒子（雨、雪、星、沙尘、漩涡…），灾害天气带预警角标。
 图标 / 城市 / 温度 / 天气 / 今日最高最低 / 湿度 / 时间都能在设置里单独开关。
 
-<img src="docs/pill.png" width="420" alt="胶囊特写"> <img src="docs/typhoon.png" width="420" alt="台风状态">
+实际运行时的顶栏：
+
+![顶栏里的玻璃天气胶囊](docs/header.png)
 
 ## 安装
 
