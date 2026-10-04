@@ -4,6 +4,12 @@ DSH（DeepSeek Harness）原生 Cordis 插件：在 **会话顶栏（标题右�
 把 图标 / 预警角标 / 城市 / 温度 / 天气文字 / 今日最高最低 / 湿度 / 时间 全部收在这颗胶囊里，并可选择让设计稿的
 canvas 粒子层直接在胶囊内运行。同时注册 `get_weather` 工具供模型查询实时天气与短期预报。
 
+![顶栏里的玻璃天气胶囊](docs/header.png)
+
+![玻璃胶囊特写](docs/pill.png)
+
+![灾害天气状态（台风）](docs/typhoon.png)
+
 - 目标运行环境：**DSH Desktop / dsh web 0.2.0-rc.2**（原生 Cordis 插件，非 hook-protocol 桥接）
 - 天气数据：Open-Meteo（免 key、免账号、无 CORS 障碍）
 - 运行时依赖：**零**。`@deepseek-ai/*` 与 `cordis` 由 profile 的 pnpm 闭包在挂载时注入
