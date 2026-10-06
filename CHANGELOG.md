@@ -9,6 +9,21 @@
 
 暂无。
 
+## [0.2.1] - 2026-10-06
+
+### Fixed
+
+- **设置页下拉框在深色主题下看不见选项**：下拉弹出层由系统绘制成白底，而表单控件原本用 `color: inherit`，
+  于是选项文字是白色、白底白字，只有鼠标悬停时才可见。现在 `select` / `input` 与 `option` / `optgroup`
+  改用 DSH 主题 token（`--dsw-alias-bg-overlay` 浮层背景、`--dsw-alias-label-primary` 主文字、
+  `--dsw-alias-bg-layer-2`、`--dsw-alias-border-l1`），并以系统色 `Canvas` / `CanvasText` 兜底，
+  深浅主题都能读。验收新增 2 条回归断言。
+
+### Changed
+
+- `package.json` 声明 `engines.dsh: ^0.2.0-rc.2`（插件市场据此显示适用范围），README 增加兼容性一行。
+- 新增 `screenshots.json`（市场详情页的截图清单，放在本仓库，换图无需再提 PR）。
+
 ## [0.2.0] - 2026-10-04
 
 UI 全面改为用户提供的设计稿 **Glass Weather Pill**：顶栏一颗玻璃胶囊就是全部界面。

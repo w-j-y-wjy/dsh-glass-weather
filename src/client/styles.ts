@@ -246,15 +246,27 @@ export const SETTINGS_CSS = `
   box-sizing: border-box;
   width: 100%;
   padding: 7px 9px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
+  border: 1px solid var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.3));
   border-radius: 10px;
-  background: rgba(127, 127, 127, 0.08);
-  color: inherit;
+  background-color: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.08));
+  color: var(--dsw-alias-label-primary, inherit);
   font: inherit;
   font-size: 12px;
 }
 .dshwx-set select {
   cursor: pointer;
+}
+/*
+ * The dropdown popup is painted by the OS, not by us: "color: inherit" made the
+ * option labels white on the OS's white popup, so they only showed up while
+ * hovered. Option rows need an *opaque* surface and its own text colour — the
+ * theme's overlay token is exactly the popover surface, and the system colours
+ * are the fallback when a token is missing.
+ */
+.dshwx-set select option,
+.dshwx-set select optgroup {
+  background-color: var(--dsw-alias-bg-overlay, Canvas);
+  color: var(--dsw-alias-label-primary, CanvasText);
 }
 .dshwx-set__actions {
   display: flex;

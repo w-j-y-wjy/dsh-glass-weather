@@ -630,6 +630,20 @@ check(
   'the glass layers, lens, flash and reduced-motion rule survive the port',
   css.includes('backdrop-filter') && css.includes('.dshwx__halo') && css.includes('wx-bolt') && css.includes('prefers-reduced-motion'),
 );
+// Regression guard for the settings dropdown: the OS paints the popup, so the
+// option rows need their own opaque surface. Inheriting the page's colour made
+// the labels white on the OS's white popup and only visible while hovered.
+check(
+  'the settings dropdown rows carry an opaque, themed surface',
+  /\.dshwx-set select option[\s\S]{0,240}background-color:\s*var\(--dsw-alias-bg-overlay/.test(css) &&
+    /\.dshwx-set select optgroup[\s\S]{0,120}|\soption,\s*\n\.dshwx-set select optgroup/.test(css) &&
+    css.includes('color: var(--dsw-alias-label-primary'),
+  'option/optgroup rules use --dsw-alias-bg-overlay + --dsw-alias-label-primary',
+);
+check(
+  'the settings form controls are themed, with system-colour fallbacks',
+  /\.dshwx-set select,[\s\S]{0,400}background-color:\s*var\(--dsw-alias-bg-layer-2/.test(css) && css.includes('CanvasText'),
+);
 
 /* ---- tree helpers for the stubbed renderer ---- */
 /* Function components are CALLED, exactly as React would, so a wrapper like the
