@@ -1,6 +1,6 @@
 {
   "name": "dsh-glass-weather",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "DeepSeek Harness 顶栏玻璃天气胶囊 + get_weather 工具：23 种天气状态、按状态配色与粒子层、全免密钥数据源。",
   "type": "module",
   "license": "MIT",

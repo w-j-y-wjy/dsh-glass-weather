@@ -9,6 +9,31 @@
 
 暂无。
 
+## [0.3.0] - 2026-10-07
+
+### Added
+
+- **深色配方**：胶囊现在有两套玻璃配方。浅色是设计稿原样（白色光泽 + 状态色）；深色收掉白色光泽
+  （`::before` 去掉白色收尾，`::after` 三处白色光泽降到 0.12 / 0.16 / 0.2，白色内阴影换掉），
+  保留状态色并提高浓度（`--wx-tint-a` +0.14 / +0.04，用 `min(1, …)` 封顶），
+  再给胶囊一圈**状态色外发光**（`0 0 24px -4px var(--wx-glow)`）和一层图标同色光晕——
+  深色界面下不再是一块发白的玻璃。
+- **主题探测**（`src/client/theme.ts`）：读 DSH 自己的主题 token（`--dsw-alias-bg-base`，回退
+  `--dsw-alias-bg-layer-1` / `--dsw-alias-bg-overlay`），按 Rec. 709 亮度判深浅；token 读不到时回退
+  `prefers-color-scheme`。探测顺序：`<html>` → `<body>` → `#root` → `[data-dsh-root]` → body 首个子元素；
+  监听主题变化（`MutationObserver` + 媒体查询）即时换配方。
+- **胶囊配色开关**（外观与动效组）：`自动（跟随 DSH 主题）` / `深色配方` / `浅色配方`，
+  存 `localStorage['dsh-weather:theme-mode']`，「恢复本机默认显示」会一并重置；
+  设置页状态行写明当前判定结果与来源（读自界面 token / 读自系统偏好 / 未读到），便于自查。
+
+### Changed
+
+- README 截图改为**浅色、深色两张并列**（`docs/states.jpg` / `docs/states-dark.jpg`），
+  `screenshots.json` 一并收录，市场详情页两张都会展示。
+- 验收 197 → **201 项**：新增主题探测（token 明暗、`rgb()` 空格写法、不可解析回退、次级 token、
+  系统偏好回退、亮度数学）、深色配方存在性（状态色发光保留、白色光泽已降、tint 封顶）、
+  配色下拉三档取值与自适应文案。
+
 ## [0.2.1] - 2026-10-06
 
 ### Fixed

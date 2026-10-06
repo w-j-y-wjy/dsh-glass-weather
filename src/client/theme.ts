@@ -89,28 +89,83 @@ export function luminanceOf(input: string): number | undefined {
   return normalized === undefined || normalized === input ? undefined : parseColor(normalized);
 }
 
+/** Where the decision came from, for the settings page's own self-check. */
+export interface ThemeDetail {
+  readonly theme: AppTheme;
+  /** `token` = read from the shell's theme token, `media` = system preference. */
+  readonly source: 'token' | 'media' | 'default';
+  /** Which element carried the token, e.g. `#root`. */
+  readonly probe?: string;
+}
+
+/** A short label for a probe element, for the self-check line. */
+function labelOf(element: Element): string {
+  const id = element.id === '' ? '' : `#${element.id}`;
+  return `${element.tagName.toLowerCase()}${id}`;
+}
+
 /**
- * The shell's own base colour, as the browser computes it.
+ * The elements probed for the theme token, nearest-last.
  *
- * Both `<html>` and `<body>` are probed: the token layer can be declared on
- * either, and a declared token is inherited, so reading the nearer element that
- * carries it keeps this independent of where the shell happens to put it.
+ * The token layer can sit on `<html>`, on `<body>` or on the app's own root
+ * element, and a declared token is inherited — so this short list keeps the
+ * decision independent of where the shell happens to put it. The element the
+ * pill itself lives in would be more direct still, but the theme has to be known
+ * *before* the first paint, when no such element exists yet.
  */
-function baseColor(): string | undefined {
+function probeElements(): Element[] {
+  const list: Element[] = [];
+  const push = (element: Element | null | undefined): void => {
+    if (element !== null && element !== undefined) list.push(element);
+  };
+  push(document.documentElement);
+  push(document.body);
+  try {
+    if (typeof document.getElementById === 'function') push(document.getElementById('root'));
+    if (typeof document.querySelector === 'function') {
+      push(document.querySelector('#app, [data-dsh-root], [class*="dsh-root"]'));
+    }
+    push(document.body?.firstElementChild ?? null);
+  } catch {
+    /* a stub document: the two document-level probes are enough */
+  }
+  return list;
+}
+
+/** The shell's own base colour, as the browser computes it, plus where it was found. */
+function baseColor(): { raw: string; probe: string } | undefined {
   try {
     if (typeof document === 'undefined' || typeof window.getComputedStyle !== 'function') return undefined;
-    for (const element of [document.documentElement, document.body]) {
-      if (element === null || element === undefined) continue;
+    for (const element of probeElements()) {
       const computed = window.getComputedStyle(element);
       for (const token of [BASE_TOKEN, ...SECONDARY_TOKENS]) {
         const raw = computed.getPropertyValue(token);
-        if (typeof raw === 'string' && raw.trim() !== '') return raw;
+        if (typeof raw === 'string' && raw.trim() !== '') return { raw, probe: labelOf(element) };
       }
     }
   } catch {
     /* a shell without the token layer: fall through to the media query */
   }
   return undefined;
+}
+
+/** The theme, plus why it was chosen. */
+export function readAppThemeDetail(): ThemeDetail {
+  const found = baseColor();
+  if (found !== undefined) {
+    const luminance = luminanceOf(found.raw);
+    if (luminance !== undefined) {
+      return { theme: luminance < DARK_LUMINANCE ? 'dark' : 'light', source: 'token', probe: found.probe };
+    }
+  }
+  try {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return { theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', source: 'media' };
+    }
+  } catch {
+    /* no media query support */
+  }
+  return { theme: 'light', source: 'default' };
 }
 
 /**
@@ -121,19 +176,7 @@ function baseColor(): string | undefined {
  * is absent or its colour cannot be parsed.
  */
 export function readAppTheme(): AppTheme {
-  const raw = baseColor();
-  if (raw !== undefined) {
-    const luminance = luminanceOf(raw);
-    if (luminance !== undefined) return luminance < DARK_LUMINANCE ? 'dark' : 'light';
-  }
-  try {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-  } catch {
-    /* no media query support */
-  }
-  return 'light';
+  return readAppThemeDetail().theme;
 }
 
 /**

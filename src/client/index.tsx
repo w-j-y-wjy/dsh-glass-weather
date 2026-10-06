@@ -21,7 +21,8 @@ import type { ReactElement } from 'react';
 import type { Context } from '@deepseek-ai/cordis';
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
 import { resolveWeather } from './locate.ts';
-import { useAppTheme } from './theme.ts';
+import { readAppThemeDetail, useAppTheme } from './theme.ts';
+import type { AppTheme } from './theme.ts';
 import {
   DEFAULT_FIELDS,
   FIELD_OPTIONS,
@@ -47,8 +48,35 @@ export const FIELDS_STORAGE_KEY = 'dsh-weather:pill-fields';
 /** Where the local manual weather state is remembered. */
 export const STATE_STORAGE_KEY = 'dsh-weather:state';
 
+/** Where the local light/dark override for the capsule is remembered. */
+export const THEME_STORAGE_KEY = 'dsh-weather:theme-mode';
+
 /** Default particle policy: the design's layer runs in the pill. */
 export const DEFAULT_PARTICLE_MODE: ParticleMode = 'always';
+
+/**
+ * The capsule's colour scheme, as the user chose it.
+ *
+ * `auto` follows the shell's own theme (see `theme.ts`). The two explicit values
+ * exist because the shell's token layer is not always readable from where a
+ * plugin renders — and because a user may simply prefer one composition.
+ */
+export type ThemeMode = 'auto' | 'light' | 'dark';
+
+/** Default: follow the shell. */
+export const DEFAULT_THEME_MODE: ThemeMode = 'auto';
+
+/** Human labels for the three choices. */
+export const THEME_LABEL: Readonly<Record<ThemeMode, string>> = Object.freeze({
+  auto: '自动（跟随 DSH 主题）',
+  dark: '深色配方',
+  light: '浅色配方',
+});
+
+/** Narrows anything to a usable theme mode. */
+export function coerceThemeMode(value: unknown): ThemeMode {
+  return value === 'dark' || value === 'light' ? value : 'auto';
+}
 
 /* ------------------------------------------------------------------ store */
 
@@ -95,6 +123,8 @@ export interface OverlayStatus extends PillReading {
   enabled: boolean;
   /** The particle policy in force. */
   particleMode: ParticleMode;
+  /** The capsule's colour-scheme choice in force (`auto` follows the shell). */
+  themeMode: ThemeMode;
   /** Which parts of the reading the pill draws. */
   fields: PillFields;
   /** Local manual state, or `''` for "decide from the weather". */
@@ -216,6 +246,26 @@ export function writeStoredParticleMode(mode: ParticleMode): void {
   }
 }
 
+/** Reads the capsule's colour-scheme override from the browser. */
+export function readStoredThemeMode(): ThemeMode {
+  try {
+    if (typeof window === 'undefined') return DEFAULT_THEME_MODE;
+    return coerceThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY));
+  } catch {
+    /* storage blocked: follow the shell */
+  }
+  return DEFAULT_THEME_MODE;
+}
+
+/** Persists the colour-scheme override. */
+export function writeStoredThemeMode(mode: ThemeMode): void {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+  } catch {
+    /* private mode / storage disabled */
+  }
+}
+
 /** Reads the pill's field switches from the browser. */
 export function readStoredFields(): PillFields {
   try {
@@ -276,11 +326,12 @@ export function WeatherSettingsCard(props: {
   binding: FormBinding;
   status: Store<OverlayStatus>;
   particles: Store<ParticleMode>;
+  themeMode: Store<ThemeMode>;
   fields: Store<PillFields>;
   state: Store<GlassState | ''>;
   onRefresh: () => void;
 }): ReactElement {
-  const { binding, status, particles, fields, state, onRefresh } = props;
+  const { binding, status, particles, themeMode, fields, state, onRefresh } = props;
   const getForm = useCallback(() => binding.getForm(), [binding]);
   const form = useSyncExternalStore(binding.subscribe, getForm);
   if (form === undefined) {
@@ -291,7 +342,15 @@ export function WeatherSettingsCard(props: {
     );
   }
   return (
-    <WeatherFields form={form} status={status} particles={particles} fields={fields} state={state} onRefresh={onRefresh} />
+    <WeatherFields
+        form={form}
+        status={status}
+        particles={particles}
+        themeMode={themeMode}
+        fields={fields}
+        state={state}
+        onRefresh={onRefresh}
+      />
   );
 }
 
@@ -300,11 +359,12 @@ function WeatherFields(props: {
   form: ConfigForm<WeatherValue>;
   status: Store<OverlayStatus>;
   particles: Store<ParticleMode>;
+  themeMode: Store<ThemeMode>;
   fields: Store<PillFields>;
   state: Store<GlassState | ''>;
   onRefresh: () => void;
 }): ReactElement {
-  const { form, status, particles, fields, state, onRefresh } = props;
+  const { form, status, particles, themeMode, fields, state, onRefresh } = props;
   const subscribe = useMemo(() => form.subscribe.bind(form), [form]);
   const readSnapshot = useMemo(() => form.getSnapshot.bind(form), [form]);
   const snapshot = useSyncExternalStore(subscribe, readSnapshot);
@@ -312,8 +372,12 @@ function WeatherFields(props: {
   const mode = useSyncExternalStore(particles.subscribe, particles.get);
   const shown = useSyncExternalStore(fields.subscribe, fields.get);
   const manualState = useSyncExternalStore(state.subscribe, state.get);
-  // The preview follows the same theme as the header pill.
-  const theme = useAppTheme();
+  const themeChoice = useSyncExternalStore(themeMode.subscribe, themeMode.get);
+  // The preview follows the same theme as the header pill, and reports where the
+  // automatic decision came from — the shell's token layer, or the system.
+  const detected = useAppTheme();
+  const detail = readAppThemeDetail();
+  const theme: AppTheme = themeChoice === 'auto' ? detected : themeChoice;
   const [lastWrite, setLastWrite] = useState<string>('');
 
   const value: WeatherConfig = coerceConfig(snapshot.value);
@@ -337,6 +401,12 @@ function WeatherFields(props: {
     setLastWrite(`粒子：${PARTICLE_LABEL[next]}`);
   };
 
+  const setThemeChoice = (next: ThemeMode): void => {
+    themeMode.set(next);
+    writeStoredThemeMode(next);
+    setLastWrite(`胶囊配色：${THEME_LABEL[next]}`);
+  };
+
   const toggleField = (key: keyof PillFields, on: boolean): void => {
     const next: PillFields = { ...shown, [key]: on };
     fields.set(next);
@@ -357,6 +427,8 @@ function WeatherFields(props: {
     writeStoredFields(defaults);
     particles.set(DEFAULT_PARTICLE_MODE);
     writeStoredParticleMode(DEFAULT_PARTICLE_MODE);
+    themeMode.set(DEFAULT_THEME_MODE);
+    writeStoredThemeMode(DEFAULT_THEME_MODE);
     state.set('');
     writeStoredState('');
     setLastWrite('已恢复本机默认显示');
@@ -379,7 +451,20 @@ function WeatherFields(props: {
 
   return (
     <div className="dshwx-set">
-      <div className="dshwx-set__status">{reading}</div>
+      <div className="dshwx-set__status">
+        {reading}
+        <span className="dshwx-set__note">
+          {' · '}
+          {`主题${theme === 'dark' ? '深色' : '浅色'}`}
+          {themeChoice === 'auto'
+            ? detail.source === 'token'
+              ? `（自动 · 读自界面 token：${detail.probe ?? '?'}）`
+              : detail.source === 'media'
+                ? '（自动 · 读自系统偏好）'
+                : '（自动 · 未读到主题信息，按浅色）'
+            : `（手动固定：${THEME_LABEL[themeChoice]}）`}
+        </span>
+      </div>
 
       <div className="dshwx-set__preview">
         <GlassPill
@@ -432,6 +517,25 @@ function WeatherFields(props: {
           </select>
           <span className="dshwx-set__note">
             每种天气状态自带一套粒子（雨、雪、星、沙尘、漩涡…），按设计稿参数运行。关闭后胶囊里不创建 canvas，零绘制开销。
+          </span>
+        </div>
+        <div className="dshwx-set__field">
+          <span className="dshwx-set__label">胶囊配色</span>
+          <select
+            value={themeChoice}
+            onChange={(event) => {
+              setThemeChoice(coerceThemeMode(event.target.value));
+            }}
+          >
+            {(['auto', 'dark', 'light'] as const).map((option) => (
+              <option key={option} value={option}>
+                {THEME_LABEL[option]}
+              </option>
+            ))}
+          </select>
+          <span className="dshwx-set__note">
+            自动 = 跟随 DSH 主题：深色界面用深色配方（收掉白色光泽、保留状态色与外发光），浅色界面用设计稿原配方。
+            读不到主题信息时可以在这里手动固定。
           </span>
         </div>
         <div className="dshwx-set__field">
@@ -616,6 +720,8 @@ declare global {
       refresh(): Promise<void>;
       /** Force a particle policy, exactly like the settings select. */
       setParticleMode(mode: ParticleMode): void;
+  /** Debug/test hook for the capsule's colour scheme. */
+  setThemeMode(mode: ThemeMode): void;
       /** Force the pill's field switches, exactly like the checkboxes. */
       setFields(fields: PillFields): void;
       /** Force a weather state, exactly like the manual-state select. */
@@ -633,6 +739,7 @@ export function apply(ctx: Context): void {
   const particles = createStore<ParticleMode>(readStoredParticleMode());
   const fields = createStore<PillFields>(readStoredFields());
   const manualState = createStore<GlassState | ''>(readStoredState());
+  const themeMode = createStore<ThemeMode>(readStoredThemeMode());
   const status = createStore<OverlayStatus>({
     state: 'partly',
     condition: '读取中',
@@ -647,6 +754,7 @@ export function apply(ctx: Context): void {
     manualEffect: 'auto',
     enabled: true,
     particleMode: particles.get(),
+    themeMode: themeMode.get(),
     fields: fields.get(),
     stateOverride: manualState.get(),
   });
@@ -703,6 +811,7 @@ export function apply(ctx: Context): void {
       manualEffect: config.manualEffect,
       enabled: config.enabled,
       particleMode: particles.get(),
+      themeMode: themeMode.get(),
       fields: fields.get(),
       stateOverride: manualState.get(),
     });
@@ -820,8 +929,10 @@ export function apply(ctx: Context): void {
           // Subscribed inside the slot component, so a refresh or a settings
           // write repaints the pill; the slot itself knows nothing about us.
           const snapshot = useSyncExternalStore(status.subscribe, status.get);
-          // The pill's composition follows the shell's own theme.
-          const theme = useAppTheme();
+          // The pill's composition follows the shell's own theme, unless the
+          // user pinned one in settings.
+          const detected = useAppTheme();
+          const theme = snapshot.themeMode === 'auto' ? detected : snapshot.themeMode;
           // `manualEffect: 'off'` is the Host-side way of saying "no particles";
           // the local policy is the other one. Either one silences the canvas.
           return (
@@ -842,6 +953,7 @@ export function apply(ctx: Context): void {
             binding={binding}
             status={status}
             particles={particles}
+            themeMode={themeMode}
             fields={fields}
             state={manualState}
             onRefresh={() => void refresh()}
@@ -877,6 +989,11 @@ export function apply(ctx: Context): void {
         const value: GlassState | '' = isGlassState(next) ? next : '';
         manualState.set(value);
         writeStoredState(value);
+      },
+      setThemeMode: (next) => {
+        const value = coerceThemeMode(next);
+        themeMode.set(value);
+        writeStoredThemeMode(value);
       },
       status: () => status.get(),
     };
@@ -949,7 +1066,7 @@ export { ParticleFx, FX_PRESETS } from './widget/fx.ts';
 export { artFor, LINE_ICONS } from './widget/art.ts';
 export { STATES, STATE_LIST, stateForCode, stateForManual, stateLabel, stateWarn } from './widget/state.ts';
 export { ALL_CSS, DARK_CSS, LAYOUT_CSS, SCOPED_CSS, installStyles } from './styles.ts';
-export { readAppTheme, watchAppTheme, luminanceOf, DARK_LUMINANCE, type AppTheme } from './theme.ts';
+export { readAppTheme, readAppThemeDetail, watchAppTheme, luminanceOf, DARK_LUMINANCE, type AppTheme } from './theme.ts';
 export { cityOnly, pickPlaceName, resolveWeather, type ReverseBody } from './locate.ts';
 
 export default { name, inject, apply };

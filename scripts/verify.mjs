@@ -686,6 +686,19 @@ check(
   `${String(clientExports.luminanceOf('#000000'))} / ${String(clientExports.luminanceOf('#ffffff'))}`,
 );
 check(
+  'the theme detail reports its source, so the card can explain itself',
+  clientExports.readAppThemeDetail().source === 'media' || clientExports.readAppThemeDetail().source === 'token',
+  clientExports.readAppThemeDetail().source,
+);
+check(
+  'the colour-scheme override only accepts auto, dark or light',
+  clientExports.coerceThemeMode('dark') === 'dark' &&
+    clientExports.coerceThemeMode('light') === 'light' &&
+    clientExports.coerceThemeMode('neon') === 'auto' &&
+    clientExports.coerceThemeMode(null) === 'auto' &&
+    clientExports.DEFAULT_THEME_MODE === 'auto',
+);
+check(
   'the dark composition exists: state glow kept, whites dropped, tint clamped',
   css.includes("[data-mode='dark']") &&
     css.includes('min(1, calc(var(--wx-tint-a) + 0.14))') &&
@@ -874,9 +887,24 @@ check(
   `inputs=${String(collectByType(cardTree, 'input').length)}`,
 );
 check(
-  'the settings card renders every selector (particles, manual state, host effect)',
-  collectByType(cardTree, 'select').length === 3,
+  'the settings card renders every selector (particles, colour scheme, manual state, host effect)',
+  collectByType(cardTree, 'select').length === 4,
   `selects=${String(collectByType(cardTree, 'select').length)}`,
+);
+check(
+  'the colour-scheme selector offers automatic, dark and light',
+  ['自动（跟随 DSH 主题）', '深色配方', '浅色配方'].every((label) =>
+    collectByType(cardTree, 'option').some((node) => node.props.children === label),
+  ),
+  collectByType(cardTree, 'option')
+    .map((node) => node.props.children)
+    .filter((label) => typeof label === 'string' && label.includes('配方'))
+    .join(','),
+);
+check(
+  'the card states the theme it resolved, and where it came from',
+  cardText.includes('主题') && (cardText.includes('读自界面 token') || cardText.includes('读自系统偏好') || cardText.includes('未读到主题信息')),
+  (cardText.match(/主题[^ ]{2,24}/g) ?? []).join(' '),
 );
 const stateGroups = collectByType(cardTree, 'optgroup').map((node) => node.props.label);
 check(

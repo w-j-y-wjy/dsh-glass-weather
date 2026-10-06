@@ -1,0 +1,10 @@
+# 图片一律按二进制处理：core.autocrlf=true 时，git 会把没有声明的
+# .jpg/.png 当文本做 CRLF 转换，那会破坏 JPEG 熵编码数据。
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.webp binary
+*.ico binary
+# 其余文件统一 LF 存储，工作区保持原样
+* text=auto

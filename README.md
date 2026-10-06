@@ -7,10 +7,12 @@ DeepSeek Harness（DSH）原生 Cordis 插件：在会话顶栏放一颗 **30px 
 
 **兼容性**：DSH Desktop / dsh web **0.2.0-rc.2**（原生 Cordis 插件，不是 hook 桥接）。已在 `package.json` 声明 `engines.dsh: ^0.2.0-rc.2` 与 `dsh.compatibility`，插件市场据此显示适用范围；其余版本未验证。
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/states-dark.jpg">
-  <img alt="23 种天气状态总览" src="docs/states.jpg">
-</picture>
+| 浅色配方 | 深色配方 |
+|---|---|
+| <img src="docs/states.jpg" width="520" alt="23 种天气状态总览（浅色配方）"> | <img src="docs/states-dark.jpg" width="520" alt="23 种天气状态总览（深色配方）"> |
+
+胶囊有两套配方，默认跟随 DSH 主题自动切换，也可在设置里手动固定：**浅色**是设计稿原样（白色光泽 + 状态色），
+**深色**收掉白色光泽、保留状态色并加一圈状态色外发光——深色界面下不会变成一块发白的玻璃。
 
 **23 种天气状态**，每种自带玻璃配色、SVG 图形与 canvas 粒子（雨、雪、星、沙尘、漩涡…），灾害天气带预警角标。
 图标 / 城市 / 温度 / 天气 / 今日最高最低 / 湿度 / 时间都能在设置里单独开关。
@@ -34,7 +36,8 @@ scripts\mount-profile.cmd desktop                      # 或本地源码挂载�
 
 - 顶栏胶囊单击刷新，悬停看完整信息；没有展开卡，胶囊就是全部界面。
 - 设置 → 插件 → 「天气」：顶部实时预览，下面四组 —— 显示内容 / 外观与动效 / 数据与位置 / 高级（含「恢复本机默认显示」）。
-- 本机开关（显示项、粒子、手动天气状态）存在浏览器 localStorage。
+- **胶囊配色**（外观与动效组）：自动跟随 DSH 主题，或手动固定深色 / 浅色配方。
+- 本机开关（显示项、粒子、配色、手动天气状态）存在浏览器 localStorage。
 - 模型可用 `get_weather` 查询实时天气与短期预报。
 
 ## 数据来源

@@ -23,6 +23,16 @@ type AppTheme = 'light' | 'dark';
 declare const DARK_LUMINANCE = 0.5;
 /** 0 (black) … 1 (white), or `undefined` when the colour cannot be read. */
 declare function luminanceOf(input: string): number | undefined;
+/** Where the decision came from, for the settings page's own self-check. */
+interface ThemeDetail {
+  readonly theme: AppTheme;
+  /** `token` = read from the shell's theme token, `media` = system preference. */
+  readonly source: 'token' | 'media' | 'default';
+  /** Which element carried the token, e.g. `#root`. */
+  readonly probe?: string;
+}
+/** The theme, plus why it was chosen. */
+declare function readAppThemeDetail(): ThemeDetail;
 /**
  * The theme to draw for.
  *
@@ -494,8 +504,24 @@ declare const PARTICLES_STORAGE_KEY = "dsh-weather:particles";
 declare const FIELDS_STORAGE_KEY = "dsh-weather:pill-fields";
 /** Where the local manual weather state is remembered. */
 declare const STATE_STORAGE_KEY = "dsh-weather:state";
+/** Where the local light/dark override for the capsule is remembered. */
+declare const THEME_STORAGE_KEY = "dsh-weather:theme-mode";
 /** Default particle policy: the design's layer runs in the pill. */
 declare const DEFAULT_PARTICLE_MODE: ParticleMode;
+/**
+ * The capsule's colour scheme, as the user chose it.
+ *
+ * `auto` follows the shell's own theme (see `theme.ts`). The two explicit values
+ * exist because the shell's token layer is not always readable from where a
+ * plugin renders — and because a user may simply prefer one composition.
+ */
+type ThemeMode = 'auto' | 'light' | 'dark';
+/** Default: follow the shell. */
+declare const DEFAULT_THEME_MODE: ThemeMode;
+/** Human labels for the three choices. */
+declare const THEME_LABEL: Readonly<Record<ThemeMode, string>>;
+/** Narrows anything to a usable theme mode. */
+declare function coerceThemeMode(value: unknown): ThemeMode;
 interface Store<T> {
   get(): T;
   set(value: T): void;
@@ -516,6 +542,8 @@ interface OverlayStatus extends PillReading {
   enabled: boolean;
   /** The particle policy in force. */
   particleMode: ParticleMode;
+  /** The capsule's colour-scheme choice in force (`auto` follows the shell). */
+  themeMode: ThemeMode;
   /** Which parts of the reading the pill draws. */
   fields: PillFields;
   /** Local manual state, or `''` for "decide from the weather". */
@@ -548,6 +576,10 @@ interface FormBinding {
 declare function readStoredParticleMode(): ParticleMode;
 /** Persists the particle policy; a blocked storage keeps the session value. */
 declare function writeStoredParticleMode(mode: ParticleMode): void;
+/** Reads the capsule's colour-scheme override from the browser. */
+declare function readStoredThemeMode(): ThemeMode;
+/** Persists the colour-scheme override. */
+declare function writeStoredThemeMode(mode: ThemeMode): void;
 /** Reads the pill's field switches from the browser. */
 declare function readStoredFields(): PillFields;
 /** Persists the field switches. */
@@ -569,6 +601,7 @@ declare function WeatherSettingsCard(props: {
   binding: FormBinding;
   status: Store<OverlayStatus>;
   particles: Store<ParticleMode>;
+  themeMode: Store<ThemeMode>;
   fields: Store<PillFields>;
   state: Store<GlassState | ''>;
   onRefresh: () => void;
@@ -595,6 +628,8 @@ declare global {
       refresh(): Promise<void>;
       /** Force a particle policy, exactly like the settings select. */
       setParticleMode(mode: ParticleMode): void;
+      /** Debug/test hook for the capsule's colour scheme. */
+      setThemeMode(mode: ThemeMode): void;
       /** Force the pill's field switches, exactly like the checkboxes. */
       setFields(fields: PillFields): void;
       /** Force a weather state, exactly like the manual-state select. */
@@ -624,5 +659,5 @@ declare const _default: {
   apply: typeof apply;
 };
 //#endregion
-export { ALL_CSS, type AppTheme, DARK_CSS, DARK_LUMINANCE, DEFAULT_FIELDS, DEFAULT_PARTICLE_MODE, FIELDS_STORAGE_KEY, FIELD_OPTIONS, FX_PRESETS, FormBinding, GlassPill, HEADER_SLOT, LAYOUT_CSS, LINE_ICONS, OverlayStatus, PARTICLES_STORAGE_KEY, ParticleFx, type ParticleMode, type PillFields, type PillReading, type ReverseBody, SCOPED_CSS, STATES, STATE_LIST, STATE_STORAGE_KEY, WeatherSettingsCard, apply, artFor, cityOnly, coerceConfig, coerceFields, _default as default, inject, installStyles, isGlassState, luminanceOf, name, pickPlaceName, readAppTheme, readStoredFields, readStoredParticleMode, readStoredState, resolveNamespace, resolveWeather, stateForCode, stateForManual, stateLabel, stateWarn, watchAppTheme, writeStoredFields, writeStoredParticleMode, writeStoredState };
+export { ALL_CSS, type AppTheme, DARK_CSS, DARK_LUMINANCE, DEFAULT_FIELDS, DEFAULT_PARTICLE_MODE, DEFAULT_THEME_MODE, FIELDS_STORAGE_KEY, FIELD_OPTIONS, FX_PRESETS, FormBinding, GlassPill, HEADER_SLOT, LAYOUT_CSS, LINE_ICONS, OverlayStatus, PARTICLES_STORAGE_KEY, ParticleFx, type ParticleMode, type PillFields, type PillReading, type ReverseBody, SCOPED_CSS, STATES, STATE_LIST, STATE_STORAGE_KEY, THEME_LABEL, THEME_STORAGE_KEY, ThemeMode, WeatherSettingsCard, apply, artFor, cityOnly, coerceConfig, coerceFields, coerceThemeMode, _default as default, inject, installStyles, isGlassState, luminanceOf, name, pickPlaceName, readAppTheme, readAppThemeDetail, readStoredFields, readStoredParticleMode, readStoredState, readStoredThemeMode, resolveNamespace, resolveWeather, stateForCode, stateForManual, stateLabel, stateWarn, watchAppTheme, writeStoredFields, writeStoredParticleMode, writeStoredState, writeStoredThemeMode };
 return module.exports; } });
