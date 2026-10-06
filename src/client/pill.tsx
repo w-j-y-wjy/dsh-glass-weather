@@ -12,6 +12,8 @@
  * escape their clipping.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+
+import type { AppTheme } from './theme.ts';
 import type { ReactElement, RefObject } from 'react';
 import { artFor, LINE_ICONS } from './widget/art.ts';
 import { ParticleFx } from './widget/fx.ts';
@@ -108,6 +110,11 @@ export interface GlassPillProps {
   particles: ParticleMode;
   /** Whether the particle layer is allowed at all (Host switch, minus `off`). */
   enabled: boolean;
+  /**
+   * The shell's theme. The ported stylesheet is the design's light composition;
+   * `dark` swaps in the dark one (same tint and glow, the white sheen dropped).
+   */
+  mode?: AppTheme;
   onRefresh: () => void;
 }
 
@@ -213,7 +220,7 @@ function Glyph(props: { state: GlassState }): ReactElement {
 
 /** The glass pill that lives in the session header. */
 export function GlassPill(props: GlassPillProps): ReactElement {
-  const { reading, fields, particles, enabled, onRefresh } = props;
+  const { reading, fields, particles, enabled, mode, onRefresh } = props;
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const warn = stateWarn(reading.state);
   const clock = useClock(fields.clock);
@@ -234,6 +241,7 @@ export function GlassPill(props: GlassPillProps): ReactElement {
     <div
       className="dshwx dshwx--compact"
       data-state={reading.state}
+      data-mode={mode ?? 'light'}
       role="button"
       tabIndex={0}
       title={title}

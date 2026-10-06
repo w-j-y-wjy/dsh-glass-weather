@@ -145,6 +145,51 @@ export const LAYOUT_CSS = `
 `;
 
 /**
+ * The design's dark composition, for a dark shell.
+ *
+ * The ported stylesheet is the *light* one: white sheen (14% / 26% / 48% / 72%)
+ * and white inner shadows layered over the state tint, which reads as a light
+ * chip floating on a dark header. The dark branch keeps what carries the
+ * meaning — the state tint and its coloured glow — and drops the whites, then
+ * gives the capsule a state-coloured outer glow so it still separates from the
+ * dark surface instead of disappearing into it.
+ *
+ * Alpha is raised with `min(1, …)` because the per-state tint alpha already runs
+ * from 0.5 (晴) to 0.78 (晴夜).
+ */
+export const DARK_CSS = `
+.dshwx[data-mode='dark'] {
+  --wx-ts: 0 1px 14px rgba(0, 0, 0, 0.55);
+  --wx-edge: rgba(255, 255, 255, 0.32);
+  --wx-shadow: 0 14px 34px rgba(0, 0, 0, 0.48), 0 0 24px -4px var(--wx-glow);
+}
+.dshwx[data-mode='dark']::before {
+  background: linear-gradient(
+    100deg,
+    rgba(var(--wx-tint), min(1, calc(var(--wx-tint-a) + 0.14))) 0%,
+    rgba(var(--wx-tint), min(1, calc(var(--wx-tint-a) + 0.04))) 52%,
+    rgba(8, 12, 20, 0.5) 100%
+  );
+}
+.dshwx[data-mode='dark']::after {
+  background: radial-gradient(
+      190px 130px at var(--lx, 50%) var(--ly, 50%),
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0) 66%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 46%),
+    radial-gradient(120% 150% at 6% -34%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 52%);
+  box-shadow: inset 0 0 0 1.2px var(--wx-edge),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.3),
+    inset 0 8px 16px rgba(255, 255, 255, 0.1);
+}
+/* the reference lets the glyph glow on dark, instead of sitting on white glass */
+.dshwx[data-mode='dark'] .dshwx__icon {
+  filter: drop-shadow(0 0 7px var(--wx-glow)) saturate(115%);
+}
+`;
+
+/**
  * The settings panel.
  *
  * Deliberately not the pill's own glass: the panel sits on the app's flat
@@ -319,7 +364,7 @@ export const SETTINGS_CSS = `
 `;
 
 /** Everything this plugin puts into the document. */
-export const ALL_CSS: string = `${SCOPED_CSS}\n${LAYOUT_CSS}\n${SETTINGS_CSS}`;
+export const ALL_CSS: string = `${SCOPED_CSS}\n${LAYOUT_CSS}\n${DARK_CSS}\n${SETTINGS_CSS}`;
 
 /**
  * Insert the stylesheet once and hand back the remover.

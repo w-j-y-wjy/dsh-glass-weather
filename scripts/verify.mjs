@@ -295,7 +295,16 @@ const motionListeners = new Set();
 
 globalThis.HTMLElement = HTMLElementStub;
 globalThis.document = documentStub;
-globalThis.getComputedStyle = () => ({ position: 'static', isolation: 'auto', zIndex: 'auto' });
+globalThis.getComputedStyle = () => ({
+  position: 'static',
+  isolation: 'auto',
+  zIndex: 'auto',
+  // The shell's theme tokens. Tests write into `themeTokens` to drive the
+  // light/dark decision without a real DOM.
+  getPropertyValue: (name) => themeTokens[name] ?? '',
+});
+/** Mutable token map for the theme-detection checks. */
+const themeTokens = Object.create(null);
 // Keep the real `performance` object intact — undici's fetch (used by the live
 // Open-Meteo check) calls markResourceTiming on it — and only virtualise `now`.
 Object.defineProperty(globalThis.performance, 'now', { configurable: true, writable: true, value: () => clock });
@@ -334,6 +343,7 @@ globalThis.window = {
   dshDesktop: { marker: true },
   // A real browser exposes these on `window`; production code reads them there.
   matchMedia: globalThis.matchMedia,
+  getComputedStyle: globalThis.getComputedStyle,
   requestAnimationFrame: globalThis.requestAnimationFrame,
   cancelAnimationFrame: globalThis.cancelAnimationFrame,
   setInterval: globalThis.setInterval,
@@ -645,6 +655,44 @@ check(
   /\.dshwx-set select,[\s\S]{0,400}background-color:\s*var\(--dsw-alias-bg-layer-2/.test(css) && css.includes('CanvasText'),
 );
 
+/* ---- theme detection: the capsule dresses for the shell's own theme ---- */
+themeTokens['--dsw-alias-bg-base'] = '#0b0e14';
+check('a dark shell token makes the pill dark', clientExports.readAppTheme() === 'dark', clientExports.readAppTheme());
+themeTokens['--dsw-alias-bg-base'] = '#ffffff';
+check('a light shell token makes it light', clientExports.readAppTheme() === 'light');
+themeTokens['--dsw-alias-bg-base'] = 'rgb(246 248 251)';
+check('space-separated rgb() is understood too', clientExports.readAppTheme() === 'light');
+themeTokens['--dsw-alias-bg-base'] = '#f0f2f6';
+check('a bright token stays light even with a dark system preference', clientExports.readAppTheme() === 'light');
+themeTokens['--dsw-alias-bg-base'] = 'color(srgb 0.04 0.06 0.09)';
+check(
+  'an unreadable colour falls back to prefers-color-scheme (light here)',
+  clientExports.readAppTheme() === 'light',
+  clientExports.readAppTheme(),
+);
+delete themeTokens['--dsw-alias-bg-base'];
+themeTokens['--dsw-alias-bg-layer-1'] = '#10141c';
+check('the secondary token answers when the primary is missing', clientExports.readAppTheme() === 'dark');
+delete themeTokens['--dsw-alias-bg-layer-1'];
+const nativeMatchMedia = globalThis.window.matchMedia;
+globalThis.window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+check('with no tokens at all it follows the system preference', clientExports.readAppTheme() === 'dark');
+globalThis.window.matchMedia = nativeMatchMedia;
+check(
+  'luminance maths: black 0, white 1, unparsable undefined',
+  clientExports.luminanceOf('#000000') === 0 &&
+    clientExports.luminanceOf('#ffffff') === 1 &&
+    clientExports.luminanceOf('nope') === undefined,
+  `${String(clientExports.luminanceOf('#000000'))} / ${String(clientExports.luminanceOf('#ffffff'))}`,
+);
+check(
+  'the dark composition exists: state glow kept, whites dropped, tint clamped',
+  css.includes("[data-mode='dark']") &&
+    css.includes('min(1, calc(var(--wx-tint-a) + 0.14))') &&
+    /data-mode='dark'\][\s\S]{0,200}0 0 24px -4px var\(--wx-glow\)/.test(css) &&
+    /data-mode='dark'\]::after[\s\S]{0,600}rgba\(255, 255, 255, 0\.12\)/.test(css),
+);
+
 /* ---- tree helpers for the stubbed renderer ---- */
 /* Function components are CALLED, exactly as React would, so a wrapper like the
    card's <Field> contributes its label instead of hiding it behind an element. */
@@ -853,6 +901,14 @@ check(
   'the card previews the real header capsule (dshwx dshwx--compact)',
   previewSlot !== undefined && collectByClass(previewSlot, 'dshwx--compact') !== undefined,
   String(collectByClass(previewSlot ?? {}, 'dshwx--compact')?.props?.className),
+);
+// The preview is the same component as the header pill, so it carries the same
+// theme attribute; the harness resolves the shell theme as light (no token).
+const previewPill = collectByClass(previewSlot ?? {}, 'dshwx--compact');
+check(
+  'the capsule carries the shell theme as data-mode',
+  previewPill?.props?.['data-mode'] === 'light' || previewPill?.props?.['data-mode'] === 'dark',
+  `data-mode=${String(previewPill?.props?.['data-mode'])}`,
 );
 const groupNodes = collectByType(cardTree, 'section').filter((node) =>
   String(node.props?.className ?? '').split(' ').includes('dshwx-set__group'),

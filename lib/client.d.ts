@@ -3,6 +3,43 @@ import { ReactElement } from "react";
 import { Context } from "@deepseek-ai/cordis";
 import { ConfigForm } from "@deepseek-ai/dsh-client-ui-settings/client";
 import "@deepseek-ai/schemastery";
+//#region src/client/theme.d.ts
+/**
+ * Which of the shell's two themes the pill should dress for.
+ *
+ * The stylesheet ported from the reference design is its **light** composition:
+ * white sheen and white inner shadows layered over the state tint. On the dark
+ * shell that reads as a light chip floating on top of a dark header, so the pill
+ * switches to a dark composition (same tint and glow, the whites dropped) when
+ * the app itself is dark.
+ *
+ * Detection deliberately does not guess at how the shell switches themes — an
+ * attribute, a class or a media query are all possible. It reads the app's own
+ * theme token and measures how bright that colour is; `prefers-color-scheme` is
+ * only the fallback for when the token is missing or unreadable.
+ */
+type AppTheme = 'light' | 'dark';
+/** Below this relative luminance the shell counts as dark. */
+declare const DARK_LUMINANCE = 0.5;
+/** 0 (black) … 1 (white), or `undefined` when the colour cannot be read. */
+declare function luminanceOf(input: string): number | undefined;
+/**
+ * The theme to draw for.
+ *
+ * The token is preferred because it follows the *app's* setting rather than the
+ * operating system's; `prefers-color-scheme` only decides when the token layer
+ * is absent or its colour cannot be parsed.
+ */
+declare function readAppTheme(): AppTheme;
+/**
+ * Notices the shell changing theme while the plugin is mounted.
+ *
+ * Two signals, because either mechanism can be the one the shell uses: a
+ * document-level attribute/class flip, and the system preference. The listener
+ * only fires on an actual flip.
+ */
+declare function watchAppTheme(listener: (theme: AppTheme) => void): () => void;
+//#endregion
 //#region src/client/widget/state.d.ts
 /**
  * The glass pill's weather vocabulary.
@@ -147,6 +184,11 @@ interface GlassPillProps {
   particles: ParticleMode;
   /** Whether the particle layer is allowed at all (Host switch, minus `off`). */
   enabled: boolean;
+  /**
+   * The shell's theme. The ported stylesheet is the design's light composition;
+   * `dark` swaps in the dark one (same tint and glow, the white sheen dropped).
+   */
+  mode?: AppTheme;
   onRefresh: () => void;
 }
 /** The glass pill that lives in the session header. */
@@ -304,6 +346,20 @@ declare const SCOPED_CSS: string;
  * of the reading the user switched on.
  */
 declare const LAYOUT_CSS = "\n/* ---------- wrapper spans around the inline SVG artwork ----------\n   The reference injects its SVG directly into .wx__icon / .wx__loc / .wx__hl,\n   so its own \"… svg { … }\" rules size them. These spans keep that contract while\n   giving React one stable child to own. */\n.dshwx__glyph,\n.dshwx__drop,\n.dshwx__pin,\n.dshwx__arrow {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n}\n.dshwx__glyph {\n  width: 100%;\n  height: 100%;\n}\n.dshwx__drop {\n  width: 10px;\n  height: 10px;\n  opacity: 0.9;\n}\n.dshwx__drop svg {\n  width: 100%;\n  height: 100%;\n}\n\n/* ---------- compact pill: the whole design at header scale ---------- */\n.dshwx--compact {\n  --wx-h: 30px;\n  padding: 0 12px 0 10px;\n  gap: 0 9px;\n  cursor: pointer;\n  /* a button/div reset: the glass is painted by ::before, never by background */\n  border: 0;\n  font: inherit;\n  text-align: left;\n}\n.dshwx--compact:focus-visible {\n  outline: 2px solid rgba(255, 255, 255, 0.75);\n  outline-offset: 2px;\n}\n.dshwx--compact .dshwx__icon {\n  width: 20px;\n  height: 20px;\n}\n.dshwx--compact .dshwx__halo {\n  inset: -14%;\n  filter: blur(4px);\n}\n.dshwx--compact .dshwx__loc {\n  gap: 4px;\n  padding: 3px 6px 3px 3px;\n  font-size: 11.5px;\n  border-radius: 9px;\n}\n.dshwx--compact .dshwx__loc svg {\n  width: 10px;\n  height: 10px;\n}\n.dshwx--compact .dshwx__primary {\n  gap: 0 11px;\n}\n.dshwx--compact .dshwx__now {\n  gap: 7px;\n}\n.dshwx--compact .dshwx__temp {\n  font-size: 16px;\n  letter-spacing: -0.4px;\n}\n.dshwx--compact .dshwx__temp sup {\n  top: 0.08em;\n  font-size: 0.5em;\n}\n.dshwx--compact .dshwx__cond {\n  font-size: 12px;\n}\n.dshwx--compact .dshwx__hl {\n  gap: 9px;\n  font-size: 11.5px;\n}\n.dshwx--compact .dshwx__hl span {\n  gap: 3px;\n}\n.dshwx--compact .dshwx__hl svg {\n  width: 9px;\n  height: 9px;\n}\n.dshwx--compact .dshwx__hl::before {\n  left: -6px;\n  height: 14px;\n}\n.dshwx--compact .dshwx__clock {\n  padding-left: 8px;\n}\n.dshwx--compact .dshwx__time {\n  font-size: 12px;\n}\n.dshwx--compact .dshwx__warn {\n  width: 13px;\n  height: 13px;\n  margin-left: -2px;\n}\n.dshwx--compact .dshwx__drop {\n  width: 10px;\n  height: 10px;\n  /* the reference gives text a shadow for legibility on light glass; an inline\n     SVG cannot take text-shadow, so it gets the equivalent drop-shadow */\n  filter: drop-shadow(0 1px 3px rgba(84, 108, 148, 0.45));\n}\n";
+/**
+ * The design's dark composition, for a dark shell.
+ *
+ * The ported stylesheet is the *light* one: white sheen (14% / 26% / 48% / 72%)
+ * and white inner shadows layered over the state tint, which reads as a light
+ * chip floating on a dark header. The dark branch keeps what carries the
+ * meaning — the state tint and its coloured glow — and drops the whites, then
+ * gives the capsule a state-coloured outer glow so it still separates from the
+ * dark surface instead of disappearing into it.
+ *
+ * Alpha is raised with `min(1, …)` because the per-state tint alpha already runs
+ * from 0.5 (晴) to 0.78 (晴夜).
+ */
+declare const DARK_CSS = "\n.dshwx[data-mode='dark'] {\n  --wx-ts: 0 1px 14px rgba(0, 0, 0, 0.55);\n  --wx-edge: rgba(255, 255, 255, 0.32);\n  --wx-shadow: 0 14px 34px rgba(0, 0, 0, 0.48), 0 0 24px -4px var(--wx-glow);\n}\n.dshwx[data-mode='dark']::before {\n  background: linear-gradient(\n    100deg,\n    rgba(var(--wx-tint), min(1, calc(var(--wx-tint-a) + 0.14))) 0%,\n    rgba(var(--wx-tint), min(1, calc(var(--wx-tint-a) + 0.04))) 52%,\n    rgba(8, 12, 20, 0.5) 100%\n  );\n}\n.dshwx[data-mode='dark']::after {\n  background: radial-gradient(\n      190px 130px at var(--lx, 50%) var(--ly, 50%),\n      rgba(255, 255, 255, 0.12),\n      rgba(255, 255, 255, 0) 66%\n    ),\n    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 46%),\n    radial-gradient(120% 150% at 6% -34%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 52%);\n  box-shadow: inset 0 0 0 1.2px var(--wx-edge),\n    inset 0 -10px 20px rgba(0, 0, 0, 0.3),\n    inset 0 8px 16px rgba(255, 255, 255, 0.1);\n}\n/* the reference lets the glyph glow on dark, instead of sitting on white glass */\n.dshwx[data-mode='dark'] .dshwx__icon {\n  filter: drop-shadow(0 0 7px var(--wx-glow)) saturate(115%);\n}\n";
 /** Everything this plugin puts into the document. */
 declare const ALL_CSS: string;
 /**
@@ -568,5 +624,5 @@ declare const _default: {
   apply: typeof apply;
 };
 //#endregion
-export { ALL_CSS, DEFAULT_FIELDS, DEFAULT_PARTICLE_MODE, FIELDS_STORAGE_KEY, FIELD_OPTIONS, FX_PRESETS, FormBinding, GlassPill, HEADER_SLOT, LAYOUT_CSS, LINE_ICONS, OverlayStatus, PARTICLES_STORAGE_KEY, ParticleFx, type ParticleMode, type PillFields, type PillReading, type ReverseBody, SCOPED_CSS, STATES, STATE_LIST, STATE_STORAGE_KEY, WeatherSettingsCard, apply, artFor, cityOnly, coerceConfig, coerceFields, _default as default, inject, installStyles, isGlassState, name, pickPlaceName, readStoredFields, readStoredParticleMode, readStoredState, resolveNamespace, resolveWeather, stateForCode, stateForManual, stateLabel, stateWarn, writeStoredFields, writeStoredParticleMode, writeStoredState };
+export { ALL_CSS, type AppTheme, DARK_CSS, DARK_LUMINANCE, DEFAULT_FIELDS, DEFAULT_PARTICLE_MODE, FIELDS_STORAGE_KEY, FIELD_OPTIONS, FX_PRESETS, FormBinding, GlassPill, HEADER_SLOT, LAYOUT_CSS, LINE_ICONS, OverlayStatus, PARTICLES_STORAGE_KEY, ParticleFx, type ParticleMode, type PillFields, type PillReading, type ReverseBody, SCOPED_CSS, STATES, STATE_LIST, STATE_STORAGE_KEY, WeatherSettingsCard, apply, artFor, cityOnly, coerceConfig, coerceFields, _default as default, inject, installStyles, isGlassState, luminanceOf, name, pickPlaceName, readAppTheme, readStoredFields, readStoredParticleMode, readStoredState, resolveNamespace, resolveWeather, stateForCode, stateForManual, stateLabel, stateWarn, watchAppTheme, writeStoredFields, writeStoredParticleMode, writeStoredState };
 return module.exports; } });

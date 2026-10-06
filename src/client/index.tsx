@@ -21,6 +21,7 @@ import type { ReactElement } from 'react';
 import type { Context } from '@deepseek-ai/cordis';
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
 import { resolveWeather } from './locate.ts';
+import { useAppTheme } from './theme.ts';
 import {
   DEFAULT_FIELDS,
   FIELD_OPTIONS,
@@ -311,6 +312,8 @@ function WeatherFields(props: {
   const mode = useSyncExternalStore(particles.subscribe, particles.get);
   const shown = useSyncExternalStore(fields.subscribe, fields.get);
   const manualState = useSyncExternalStore(state.subscribe, state.get);
+  // The preview follows the same theme as the header pill.
+  const theme = useAppTheme();
   const [lastWrite, setLastWrite] = useState<string>('');
 
   const value: WeatherConfig = coerceConfig(snapshot.value);
@@ -384,6 +387,7 @@ function WeatherFields(props: {
           fields={shown}
           particles={mode}
           enabled={live.enabled && live.manualEffect !== 'off'}
+          mode={theme}
           onRefresh={onRefresh}
         />
         <span className="dshwx-set__previewNote">实时预览 · 与顶栏是同一个组件</span>
@@ -816,6 +820,8 @@ export function apply(ctx: Context): void {
           // Subscribed inside the slot component, so a refresh or a settings
           // write repaints the pill; the slot itself knows nothing about us.
           const snapshot = useSyncExternalStore(status.subscribe, status.get);
+          // The pill's composition follows the shell's own theme.
+          const theme = useAppTheme();
           // `manualEffect: 'off'` is the Host-side way of saying "no particles";
           // the local policy is the other one. Either one silences the canvas.
           return (
@@ -824,6 +830,7 @@ export function apply(ctx: Context): void {
               fields={snapshot.fields}
               particles={snapshot.particleMode}
               enabled={snapshot.enabled && snapshot.manualEffect !== 'off'}
+              mode={theme}
               onRefresh={() => void refresh()}
             />
           );
@@ -941,7 +948,8 @@ export {
 export { ParticleFx, FX_PRESETS } from './widget/fx.ts';
 export { artFor, LINE_ICONS } from './widget/art.ts';
 export { STATES, STATE_LIST, stateForCode, stateForManual, stateLabel, stateWarn } from './widget/state.ts';
-export { ALL_CSS, LAYOUT_CSS, SCOPED_CSS, installStyles } from './styles.ts';
+export { ALL_CSS, DARK_CSS, LAYOUT_CSS, SCOPED_CSS, installStyles } from './styles.ts';
+export { readAppTheme, watchAppTheme, luminanceOf, DARK_LUMINANCE, type AppTheme } from './theme.ts';
 export { cityOnly, pickPlaceName, resolveWeather, type ReverseBody } from './locate.ts';
 
 export default { name, inject, apply };
